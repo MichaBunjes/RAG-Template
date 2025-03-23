@@ -127,6 +127,26 @@ class DatabaseGenerator:
         self.logger = logging.getLogger(__name__)
 
     def embed_new_database(self, load_chunks_from_file: bool = False):
+        """Embed text chunks into vector embeddings to create a searchable database.
+
+        This method takes text chunks from PDFs and generates vector embeddings using the
+        ModelCommunicator. It can either load existing chunks from a file or generate new
+        chunks from PDFs.
+
+        Args:
+            load_chunks_from_file (bool, optional): Whether to load existing chunks from file
+                instead of generating new ones. Defaults to False.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the text chunks and their embeddings with columns:
+                - All columns from original chunks (topic, document_name, etc.)
+                - text_embeddings: Vector embeddings generated for each text chunk
+
+        Note:
+            This is a computationally intensive process that may take significant time,
+            especially for large numbers of chunks. The embeddings are generated in batches
+            with delays between batches to avoid rate limits.
+        """
         if load_chunks_from_file:
             self.logger.info(
                 "Importing PDf chunks..."
