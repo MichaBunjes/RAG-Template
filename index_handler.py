@@ -15,19 +15,55 @@ class IndexHandler:
         self,
         bucket_name: Optional[str],
         file_path: str = "faiss_index.csv",
-        is_in_cloud: bool = False,
+        is_index_in_cloud: bool = False,
     ) -> None:
+        """IndexHandler class for managing FAISS index operations.
+
+        This class handles loading and searching the FAISS index for document chunks.
+        It manages:
+        - Loading index from local file or Google Cloud Storage
+        - Performing similarity search on document vectors
+        - Logging index operations
+
+        Args:
+            bucket_name (Optional[str]): Name of GCS bucket containing index file
+            file_path (str, optional): Path to index file. Defaults to "faiss_index.csv".
+            is_in_cloud (bool, optional): Whether index is stored in GCS. Defaults to False.
+
+        Attributes:
+            bucket_name (Optional[str]): Name of GCS bucket
+            client (storage.Client): Google Cloud Storage client
+            bucket (storage.Bucket): GCS bucket object
+            blob (storage.Blob): GCS blob object for index file
+            file_path (str): Path to index file
+            is_in_cloud (bool): Whether index is in cloud storage
+            index (faiss.Index): Loaded FAISS index
+            logger (Logger): Logger instance for this class
+        """
+        self.bucket_name = bucket_name
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
         self.blob = self.bucket.blob(file_path)
         self.file_path = file_path
-        self.is_in_cloud = is_in_cloud
+        self.is_in_cloud = is_index_in_cloud
         self.index = None
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-    async def load_index_from_gcs(self):
+    async def load_index_from_gcs(self) -> faiss.Index:
+        """Load FAISS index from Google Cloud Storage.
+
+        Downloads the index file from GCS to a temporary local file, loads it into a FAISS index,
+        then removes the temporary file.
+
+        Returns:
+            faiss.Index: The loaded FAISS index object from cloud storage.
+                Returns None if there is an error loading the index.
+
+        Raises:
+            Exception: If there is an error downloading or loading the index file
+        """
         self.logger.info("Loading index from cloud storage")
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_path = temp_file.name
@@ -40,6 +76,19 @@ class IndexHandler:
     async def get_index(
         self,
     ) -> faiss.Index:
+        """Get the FAISS index for similarity search.
+
+        Loads the FAISS index either from Google Cloud Storage or local file system
+        depending on is_in_cloud flag. Caches the loaded index in self.index.
+
+        Returns:
+            faiss.Index: The loaded FAISS index object.
+                Returns None if there is an error loading the index.
+
+        Raises:
+            ValueError: If bucket_name is not provided when is_in_cloud is True
+            Exception: If there is an error loading the index file
+        """
         try:
             if self.is_in_cloud:
                 if not self.bucket_name:
@@ -59,6 +108,22 @@ class IndexHandler:
             return None
 
     def similarity_search(self, query_vector, num_chunks: int = 30) -> List[int]:
+        """Perform similarity search using the FAISS index.
+
+        Takes a query vector and performs cosine similarity search against the indexed embeddings
+        to find the most similar document chunks.
+
+        Args:
+            query_vector (numpy.ndarray): Query embedding vector to search against
+            num_chunks (int, optional): Number of similar chunks to return. Defaults to 30.
+
+        Returns:
+            List[int]: List of indices for the most similar document chunks, sorted in ascending order.
+                The indices correspond to rows in the original dataframe.
+
+        Raises:
+            Exception: If there is an error performing the similarity search
+        """
         similarities, indices = self.index.search(query_vector, k=num_chunks)
         indices[0].sort()
 
@@ -68,6 +133,22 @@ class IndexHandler:
         return indices[0]
 
     async def build_index(self, df: pd.DataFrame) -> faiss.IndexFlatIP:
+        """Build a FAISS index from document embeddings.
+
+        Takes a DataFrame containing text embeddings and builds a FAISS index for similarity search.
+        The embeddings must be in a 'text_embeddings' column as lists/arrays of floats.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing text embeddings in 'text_embeddings' column
+
+        Returns:
+            faiss.IndexFlatIP: Built FAISS index containing the embeddings
+
+        Raises:
+            ValueError: If DataFrame does not contain 'text_embeddings' column
+            ValueError: If embeddings are not in correct format (2D array)
+            Exception: If there is an error building the index
+        """
         if "text_embeddings" not in df.colums:
             self.logger.error("Dataframe does not contain 'text_embeddings' column.")
             raise ValueError("Dataframe does not contain 'text_embeddings' column.")
