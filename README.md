@@ -43,4 +43,4 @@
    - Generate embeddings (this may take some time (hours))
    - Create a searchable database
 
-7. For subsequent runs, the system will use the existing database. If you modify the PDF files, run the database generation again.
+7. For subsequent runs, the system will use the existing database. If you modify the PDF files, you need to run the database generation again.
