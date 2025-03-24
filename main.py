@@ -10,11 +10,11 @@ from query_handler import QueryHandler
 
 
 class RagSystem:
-    async def __init__(self) -> None:
+    def __init__(self) -> None:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-        self.QueryHandler = await QueryHandler.create()
+        self.QueryHandler = QueryHandler.create()
 
 
 class ChatInputSchema(Schema):
