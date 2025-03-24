@@ -25,6 +25,7 @@ class DatabaseLoader:
         Args:
             bucket_name (Optional[str]): Name of the GCS bucket. Required if accessing files in cloud storage.
             file_path (str, optional): Path to the database CSV file. Defaults to "df_database.csv".
+            is_database_in_cloud (bool, optional): Whether database is in Google Cloud or local. Defaults to False.
 
         Attributes:
             file_path (str): Path to the database CSV file
@@ -49,10 +50,6 @@ class DatabaseLoader:
 
         Downloads a CSV file from the specified GCS bucket and loads it into a pandas DataFrame.
 
-        Args:
-            bucket_name (str): Name of the GCS bucket containing the CSV file
-            file_path (str): Path to the CSV file within the bucket
-
         Returns:
             pd.DataFrame: DataFrame containing the loaded CSV data
 
@@ -70,9 +67,6 @@ class DatabaseLoader:
         This method loads the database CSV file from either local storage or GCS depending on the
         is_in_cloud parameter.
 
-        Args:
-            is_in_cloud (bool, optional): Whether to load from cloud storage. Defaults to False.
-
         Returns:
             pd.DataFrame: DataFrame containing the loaded database, or None if loading fails
 
@@ -84,7 +78,7 @@ class DatabaseLoader:
             if self.is_database_in_cloud:
                 if not self.bucket_name:
                     raise ValueError(
-                        "bucket_name must be provided when is_in_cloud is True"
+                        "bucket_name must be provided when is_database_in_cloud is True"
                     )
                 df = await self.load_df_csv_from_gcs(self.bucket_name, self.file_path)
                 return df
