@@ -6,14 +6,13 @@ from typing import Optional
 import fitz
 import pandas as pd
 from google.cloud import storage
-
 from model_communicator import ModelCommunicator
 
 
 class DatabaseLoader:
     def __init__(
         self,
-        bucket_name: Optional[str],
+        bucket_name: Optional[str] = None,
         file_path: str = "df_database.csv",
         is_database_in_cloud: bool = False,
     ) -> None:
@@ -37,10 +36,12 @@ class DatabaseLoader:
         """
         self.file_path = file_path
         self.is_database_in_cloud = is_database_in_cloud
-        self.client = storage.Client()
-        self.bucket_name = bucket_name
-        self.bucket = self.client.bucket(bucket_name)
-        self.blob = self.bucket.blob(self.file_path)
+
+        if is_database_in_cloud:
+            self.client = storage.Client()
+            self.bucket_name = bucket_name
+            self.bucket = self.client.bucket(bucket_name)
+            self.blob = self.bucket.blob(self.file_path)
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
