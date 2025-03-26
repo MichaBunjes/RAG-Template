@@ -28,6 +28,7 @@
    The app will run on http://localhost:8080 by default and will listen to HTTP POST requests with this JSON format:
    ```
     {
+        "request_type": "rag_query",
         "user_question": "Hier deine Frage?",
         "messages": [
             {
