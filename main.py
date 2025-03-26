@@ -5,7 +5,6 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from marshmallow import Schema, ValidationError, fields
-
 from query_handler import QueryHandler
 
 
@@ -14,15 +13,17 @@ class RagSystem:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-        self.QueryHandler = QueryHandler.create()
+        self.QueryHandler = asyncio.run(QueryHandler.create())
 
 
 class ChatInputSchema(Schema):
+    request_type = fields.Str(required=True)
     user_question = fields.Str(required=True)
     messages = fields.List(fields.Dict(), required=True)
 
 
 class FeedbackInputSchema(Schema):
+    request_type = fields.Str(required=True)
     is_positive = fields.Bool(required=True)
     feedback_text = fields.Str(required=True)
     messages = fields.List(fields.Dict(), required=True)
@@ -69,7 +70,7 @@ def process_chat_json():
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            response, _ = loop.run_until_complete(
+            response = loop.run_until_complete(
                 RagBackend.QueryHandler.handle_query(user_question, messages)
             )
 
