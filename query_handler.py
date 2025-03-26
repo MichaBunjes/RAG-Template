@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from typing import List, Tuple
 
 import numpy as np
@@ -154,14 +155,14 @@ class QueryHandler:
                 # combined_user_questions += "\n".join(assistant_entries[-2:])
 
             # Generate Embedding
-            query_embedding = await np.array(
-                self.ModelCommunicator.generate_embeddings_from_list(
+            query_embedding = np.array(
+                await self.ModelCommunicator.generate_embeddings_from_list(
                     [combined_user_questions]
                 )
             )
 
             # Similarity Search
-            indices_similar = IndexHandler.similarity_search(
+            indices_similar = self.IndexHandler.similarity_search(
                 query_embedding, num_chunks=30
             )
 
@@ -188,12 +189,12 @@ class QueryHandler:
             )
 
             # Process LLM response
-            # TODO: make document links
+            llm_response = self.make_links(llm_response)
 
             return llm_response
         except Exception as e:
             self.logger.error(f"Error handling query: {e}")
-            return "Ich bin leider nicht in der Lage, doie Anfrage zu beantworten. Bitte versuche es erneut."
+            return "Ich bin leider nicht in der Lage, die Anfrage zu beantworten. Bitte versuche es erneut."
 
     def get_prompts(
         self, indices_similar, user_question: str = "Ich habe keine Frage."
@@ -220,3 +221,20 @@ class QueryHandler:
             context_prompt += f"**Dokument: {row['document_name']}, Seite {row['page_number']}**: \n{row['text']}\n\n"
 
         return system_prompt, context_prompt, query_prompt
+
+    def make_links(self, response: str) -> str:
+        sources = self.df["document_name"].unique().tolist()
+        for source in sources:
+            doc_name = re.escape(source)
+            doc_url = source  # Placeholder for the link generation
+            response = re.sub(
+                rf"\b{doc_name}\b",
+                f'<a href="{doc_url}" target="_blank" style="text-decoration: underline;">{source}</a',
+                response,
+            )
+            response = re.sub(
+                rf"{re.escape(source.replace('.pdf', '').replace(' ', '_'))}(?!\.pdf)",
+                source,
+                response,
+            )
+        return response

@@ -55,35 +55,42 @@ RagBackend = RagSystem()
 @app.route("/", methods=["POST"])
 def process_chat_json():
     try:
-        chat_input = ChatInputSchema().load(request.get_json())
+        request_data = request.get_json()
 
-        user_question = chat_input["user_question"]
-        messages = chat_input["messages"]
+        if "request_type" not in request_data:
+            return jsonify({"error": "Missing request_type field"}), 400
+        request_type = request_data["request_type"]
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        response, _ = loop.run_until_complete(
-            RagBackend.QueryHandler.handle_query(user_question, messages)
-        )
+        if request_type == "rag_query":
+            chat_input = ChatInputSchema().load(request.get_json())
 
-        return jsonify(response)
-    except ValidationError as err:
-        return jsonify(err.messages), 400
+            user_question = chat_input["user_question"]
+            messages = chat_input["messages"]
 
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            response, _ = loop.run_until_complete(
+                RagBackend.QueryHandler.handle_query(user_question, messages)
+            )
 
-@app.route("/feedback", methods=["POST"])
-def process_feedback_json():
-    try:
-        feedback_input = FeedbackInputSchema().load(request.get_json())
+            return jsonify(response)
 
-        feedback = {
-            "is_positive": feedback_input["is_postitive"],
-            "feedback_text": feedback_input["feedback_text"],
-            "messages": feedback_input["messages"],
-        }
+        elif request_type == "feedback":
+            bucket_name = "bucket"
+            feedback_input = FeedbackInputSchema().load(request_data)
 
-        # FeedbackHandler.save_feedback(feedback)
-        return jsonify({"message": "Feedback submitted successfully."})
+            feedback = {
+                "is_positive": feedback_input["is_positive"],
+                "feedback_text": feedback_input["feedback_text"],
+                "messages": feedback_input["messages"],
+            }
+
+            print("Not yet saving feedback...")
+            # TODO FeedbackHandler.save_feedback(feedback)
+            return jsonify({"message": "Feedback submitted successfully."})
+        else:
+            return jsonify({"error": "Invalid request_type field"}), 400
+
     except ValidationError as err:
         return jsonify(err.messages), 400
     except Exception as e:

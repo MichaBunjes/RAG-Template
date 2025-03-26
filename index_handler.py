@@ -149,7 +149,7 @@ class IndexHandler:
             ValueError: If embeddings are not in correct format (2D array)
             Exception: If there is an error building the index
         """
-        if "text_embeddings" not in df.colums:
+        if "text_embeddings" not in df.columns:
             self.logger.error("Dataframe does not contain 'text_embeddings' column.")
             raise ValueError("Dataframe does not contain 'text_embeddings' column.")
 

@@ -80,7 +80,7 @@ class DatabaseLoader:
                     raise ValueError(
                         "bucket_name must be provided when is_database_in_cloud is True"
                     )
-                df = await self.load_df_csv_from_gcs(self.bucket_name, self.file_path)
+                df = await self.load_df_csv_from_gcs()
                 return df
             else:
                 return pd.read_csv(self.file_path)
@@ -120,7 +120,9 @@ class DatabaseGenerator:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-    def embed_new_database(self, load_chunks_from_file: bool = False):
+    # TODO: def save_dataframe locally (or in cloud bucket)
+
+    def embed_new_database(self, load_chunks_from_file: bool = False) -> pd.DataFrame:
         """Embed text chunks into vector embeddings to create a searchable database.
 
         This method takes text chunks from PDFs and generates vector embeddings using the
@@ -142,9 +144,8 @@ class DatabaseGenerator:
             with delays between batches to avoid rate limits.
         """
         if load_chunks_from_file:
-            self.logger.info(
-                "Importing PDf chunks..."
-            )  # If chunks have been created already
+            self.logger.info("Importing PDf chunks...")
+            # If chunks have been created already
             df_chunks = self.load_pdf_chunks()
         else:
             df_chunks = self.generate_pdf_chunks()
@@ -158,7 +159,9 @@ class DatabaseGenerator:
         )
         return df
 
-    def load_pdf_chunks(self, chunks_file_path: str = "df_pdf_chunks.csv"):
+    def load_pdf_chunks(
+        self, chunks_file_path: str = "df_pdf_chunks.csv"
+    ) -> pd.DataFrame:
         """Load PDF chunks from a CSV file.
 
         Loads previously generated PDF chunks from a CSV file containing document text chunks
@@ -188,7 +191,7 @@ class DatabaseGenerator:
             )
         return None
 
-    def generate_pdf_chunks(self):
+    def generate_pdf_chunks(self) -> pd.DataFrame:
         """Generate text chunks from PDF files.
 
         Processes PDF files in the configured folder path, extracting text and splitting it into
@@ -265,6 +268,7 @@ class DatabaseGenerator:
                             continue
 
                     # Remaining text:
+                    # TODO Should be in or outside loop?
                     if temp_text:
                         chunk_data = {
                             "topic": topic,
@@ -274,12 +278,12 @@ class DatabaseGenerator:
                             "text": temp_text,
                         }
 
-                    all_text_chunks.append(chunk_data)
+                        all_text_chunks.append(chunk_data)
+
+                        # except Exception as e:
+                        #     self.logger.error(
+                        #         f"Error processing page {page_num} in file {filename}: {e}"
+                        #     )
+                        #     continue
 
         return pd.DataFrame(all_text_chunks)
-
-
-# def generate_new_database
-# extract chunks from pdfs return df
-# generate embeddings
-# save_database
