@@ -13,8 +13,8 @@ from google.cloud import storage
 class IndexHandler:
     def __init__(
         self,
-        bucket_name: Optional[str],
-        file_path: str = "faiss_index.csv",
+        bucket_name: Optional[str] = None,
+        file_path: str = "faiss_index.index",
         is_index_in_cloud: bool = False,
     ) -> None:
         """IndexHandler class for managing FAISS index operations.
@@ -40,12 +40,15 @@ class IndexHandler:
             index (faiss.Index): Loaded FAISS index
             logger (Logger): Logger instance for this class
         """
-        self.bucket_name = bucket_name
-        self.client = storage.Client()
-        self.bucket = self.client.bucket(bucket_name)
-        self.blob = self.bucket.blob(file_path)
-        self.file_path = file_path
         self.is_in_cloud = is_index_in_cloud
+
+        if is_index_in_cloud:
+            self.bucket_name = bucket_name
+            self.client = storage.Client()
+            self.bucket = self.client.bucket(bucket_name)
+            self.blob = self.bucket.blob(file_path)
+
+        self.file_path = file_path
         self.index = None
 
         logging.basicConfig(level=logging.INFO)
@@ -67,23 +70,22 @@ class IndexHandler:
         self.logger.info("Loading index from cloud storage")
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_path = temp_file.name
-            await self.blob.download_to_filename(temp_path)
+            self.blob.download_to_filename(temp_path)
         index = faiss.read_index(temp_path)
         os.remove(temp_path)
         self.logger.info(f"FAISS index loaded from {self.file_path}")
         return index
 
-    async def get_index(
+    async def set_index(
         self,
     ) -> faiss.Index:
-        """Get the FAISS index for similarity search.
+        """Set the FAISS index for similarity search.
 
         Loads the FAISS index either from Google Cloud Storage or local file system
         depending on is_in_cloud flag. Caches the loaded index in self.index.
 
         Returns:
-            faiss.Index: The loaded FAISS index object.
-                Returns None if there is an error loading the index.
+            None
 
         Raises:
             ValueError: If bucket_name is not provided when is_in_cloud is True
@@ -95,13 +97,13 @@ class IndexHandler:
                     raise ValueError(
                         "bucket_name must be provided when is_in_cloud is True"
                     )
-                index = await self.load_index_from_gcs()
-                return index
+                self.index = await self.load_index_from_gcs()
+                return None
 
             else:
-                index = await faiss.read_index(self.file_path)
+                self.index = faiss.read_index(self.file_path)
                 self.logger.info(f"FAISS index loaded from {self.file_path}")
-                return index
+                return None
 
         except Exception as e:
             self.logger.error(f"Error getting index: {e}")
