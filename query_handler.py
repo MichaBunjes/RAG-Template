@@ -4,14 +4,13 @@ import re
 from typing import List, Tuple
 
 import numpy as np
-
 from database_handler import DatabaseLoader
 from index_handler import IndexHandler
 from model_communicator import ModelCommunicator
 
 
 class QueryHandler:
-    def __init__(self, index, df) -> None:
+    def __init__(self, index, df, database_loader, index_handler) -> None:
         """QueryHandler class for managing conversational queries with RAG.
 
         This class coordinates between the database, index, and model components to handle
@@ -29,7 +28,7 @@ class QueryHandler:
             df: Loaded document database as DataFrame
             logger: Logger instance for this class
         """
-        if index is None or df is None:
+        if index_handler.index is None or df is None:
             raise RuntimeError(
                 "Use 'await QueryHandler.create()' instead of 'QueryHandler()'."
             )
@@ -37,14 +36,10 @@ class QueryHandler:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-        self.DatabaseLoader = DatabaseLoader(is_database_in_cloud=False)
-        self.IndexHandler = IndexHandler(is_index_in_cloud=False)
-        self.ModelCommunicator = ModelCommunicator(
-            embedding_model="placeholder_embedding_model",
-            chat_model="placeholder_chat_model",
-        )
+        self.DatabaseLoader = database_loader
+        self.IndexHandler = index_handler
+        self.ModelCommunicator = ModelCommunicator()
 
-        self.index = index
         self.df = df
 
     @classmethod
@@ -62,10 +57,12 @@ class QueryHandler:
             This method should be used instead of directly instantiating QueryHandler
             since it handles the asynchronous loading of required resources.
         """
+        database_loader = DatabaseLoader(is_database_in_cloud=False)
+        index_handler = IndexHandler(is_index_in_cloud=False)
         index, df = await asyncio.gather(
-            cls.IndexHandler.get_index(), cls.DatabaseLoader.get_database()
+            index_handler.set_index(), database_loader.get_database()
         )
-        return cls(index, df)
+        return cls(index, df, database_loader, index_handler)
 
     def convert_messages_to_conversation_history(self, messages: List[dict]):
         """Convert message history into conversation format.
