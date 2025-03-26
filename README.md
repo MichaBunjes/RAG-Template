@@ -4,9 +4,11 @@
 1. Install requirements.txt
 2. Create a `.env` file in the root directory with the following variables:
    ```
-   AZURE_OPENAI_API_KEY=your_api_key
-   AZURE_OPENAI_VERSION=your_api_version 
-   AZURE_OPENAI_ENDPOINT=your_endpoint
+   AZURE_OPENAI_API_KEY=<your-api-key>
+   AZURE_OPENAI_ENDPOINT=<your-endpoint>
+   AZURE_EMBEDDING_MODEL_NAME=<your-embedding-model>
+   AZURE_CHAT_MODEL_NAME=<your-chat-model>
+   AZURE_OPENAI_API_VERSION=<your-api-version>
    ```
 4. Prepare your PDF documents:
    - Create a folder called `pdf_data` in the root directory
