@@ -10,7 +10,7 @@ from openai import AzureOpenAI
 
 
 class ModelCommunicator:
-    def __init__(self, embedding_model, chat_model) -> None:
+    def __init__(self) -> None:
         """ModelCommunicator class for interacting with language models.
 
         This class handles communication with Azure OpenAI models for embeddings and chat.
@@ -37,8 +37,10 @@ class ModelCommunicator:
         """
         load_dotenv()
         self.api_key = os.getenv("AZURE_OPENAI_API_KEY")
-        self.api_version = os.getenv("AZURE_OPENAI_VERSION")
+        self.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
         self.api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.embedding_model = os.getenv("AZURE_EMBEDDING_MODEL_NAME")
+        self.chat_model = os.getenv("AZURE_CHAT_MODEL_NAME")
 
         if not self.api_key or not self.api_version or not self.api_endpoint:
             raise ValueError("API credentials are not set in environment variables.")
@@ -48,8 +50,6 @@ class ModelCommunicator:
             api_version=self.api_version,
             azure_endpoint=self.api_endpoint,
         )
-        self.embedding_model = embedding_model
-        self.chat_model = chat_model
         self.temperature = 0.0
         self.dimensions = 768
 
@@ -75,7 +75,7 @@ class ModelCommunicator:
             Exception: If there is an error calling the embeddings API
         """
         try:
-            embeddings_response = await self.client.embeddings.create(
+            embeddings_response = self.client.embeddings.create(
                 input=chunk_list, model=self.embedding_model, dimensions=self.dimensions
             )
             return [embedding.embedding for embedding in embeddings_response.data]
