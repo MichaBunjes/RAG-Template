@@ -13,21 +13,21 @@ class DatabaseLoader:
     def __init__(
         self,
         bucket_name: Optional[str] = None,
-        file_path: str = "df_database.csv",
+        file_path: str = "df_database.parquet",
         is_database_in_cloud: bool = False,
     ) -> None:
-        """Database loader class for managing CSV database files.
+        """Database loader class for managing Parquet database files.
 
         This class provides functionality to load and retrieve database files from either local storage
         or Google Cloud Storage (GCS).
 
         Args:
             bucket_name (Optional[str]): Name of the GCS bucket. Required if accessing files in cloud storage.
-            file_path (str, optional): Path to the database CSV file. Defaults to "df_database.csv".
+            file_path (str, optional): Path to the database Parquet file. Defaults to "df_database.parquet".
             is_database_in_cloud (bool, optional): Whether database is in Google Cloud or local. Defaults to False.
 
         Attributes:
-            file_path (str): Path to the database CSV file
+            file_path (str): Path to the database parquet file
             client (storage.Client): Google Cloud Storage client
             bucket_name (str): Name of the GCS bucket
             bucket (storage.Bucket): GCS bucket object
@@ -46,26 +46,26 @@ class DatabaseLoader:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-    async def load_df_csv_from_gcs(self) -> pd.DataFrame:
-        """Load a CSV database file from Google Cloud Storage.
+    async def load_df_parquet_from_gcs(self) -> pd.DataFrame:
+        """Load a Parquet database file from Google Cloud Storage.
 
-        Downloads a CSV file from the specified GCS bucket and loads it into a pandas DataFrame.
+        Downloads a Parquet file from the specified GCS bucket and loads it into a pandas DataFrame.
 
         Returns:
-            pd.DataFrame: DataFrame containing the loaded CSV data
+            pd.DataFrame: DataFrame containing the loaded Parquet data
 
         Note:
             This method requires that the GCS client and bucket have already been initialized
             in the class constructor.
         """
         content = self.blob.download_as_bytes()
-        df = pd.read_csv(io.BytesIO(content))
+        df = pd.read_parquet(io.BytesIO(content))
         return df
 
     async def get_database(self) -> pd.DataFrame:
         """Get the database from either local storage or Google Cloud Storage.
 
-        This method loads the database CSV file from either local storage or GCS depending on the
+        This method loads the database Parquet file from either local storage or GCS depending on the
         is_in_cloud parameter.
 
         Returns:
@@ -81,10 +81,10 @@ class DatabaseLoader:
                     raise ValueError(
                         "bucket_name must be provided when is_database_in_cloud is True"
                     )
-                df = await self.load_df_csv_from_gcs()
+                df = await self.load_df_parquet_from_gcs()
                 return df
             else:
-                return pd.read_csv(self.file_path)
+                return pd.read_parquet(self.file_path)
         except Exception as e:
             self.logger.error(f"Error getting database: {e}")
             return None
@@ -96,6 +96,8 @@ class DatabaseGenerator:
         pdf_folder_path: str = "pdf_data",
         chunk_size: int = 500,
         overlap_size: int = 100,
+        bucket_name: Optional[str] = None,
+        save_pdf_chunks_to_cloud: bool = False,
     ) -> None:
         """Initialize a DatabaseGenerator instance.
 
@@ -114,14 +116,18 @@ class DatabaseGenerator:
             logger (logging.Logger): Logger instance for this class
         """
         self.pdf_folder_path = pdf_folder_path
-        self.ModelCommunicator = ModelCommunicator()
+        self.mode_communicator = ModelCommunicator()
         self.chunk_size = chunk_size
         self.overlap_size = overlap_size
+        self.save_pdf_chunks_to_cloud = save_pdf_chunks_to_cloud
+
+        if save_pdf_chunks_to_cloud:
+            self.bucket_name = bucket_name
+            self.client = storage.Client()
+            self.bucket = self.client.bucket(bucket_name)
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-
-    # TODO: def save_dataframe locally (or in cloud bucket)
 
     def embed_new_database(self, load_chunks_from_file: bool = False) -> pd.DataFrame:
         """Embed text chunks into vector embeddings to create a searchable database.
@@ -155,22 +161,38 @@ class DatabaseGenerator:
         self.logger.info(
             "Generating embeddings for database (this may take a long time)..."
         )
-        df = ModelCommunicator.batch_generate_embedding_df(
-            df_chunks, batch_size=10, sleep_time=5
+        df_chunks_and_embeddings = self.mode_communicator.batch_generate_embedding_df(
+            df=df_chunks, batch_size=10, sleep_time=5
         )
-        return df
+        return df_chunks, df_chunks_and_embeddings
+
+    def write_pdf_chunks_database_to_file(
+        self, df: pd.DataFrame, file_path: str = "df_database.parquet"
+    ) -> None:
+        if self.save_pdf_chunks_to_cloud:
+            blob = self.bucket.blob(file_path)
+            df.to_parquet(file_path, index=False)
+            blob.upload_from_filename(file_path)
+            os.remove(file_path)
+            self.logger.info(
+                f"PDF Chunk database uploaded to GCS, file path: {file_path}."
+            )
+        else:
+            df.to_parquet(file_path, index=False)
+            self.logger.info(f"PDF Chunk database saved to {file_path}.")
+        return None
 
     def load_pdf_chunks(
-        self, chunks_file_path: str = "df_pdf_chunks.csv"
+        self, chunks_file_path: str = "df_pdf_chunks.parquet"
     ) -> pd.DataFrame:
-        """Load PDF chunks from a CSV file.
+        """Load PDF chunks from a Parquet file.
 
-        Loads previously generated PDF chunks from a CSV file containing document text chunks
+        Loads previously generated PDF chunks from a Parquet file containing document text chunks
         and their metadata.
 
         Args:
-            chunks_file_path (str, optional): Path to the CSV file containing the chunks.
-                Defaults to "df_pdf_chunks.csv".
+            chunks_file_path (str, optional): Path to the Parquet file containing the chunks.
+                Defaults to "df_pdf_chunks.parquet".
 
         Returns:
             pd.DataFrame: DataFrame containing the loaded chunks with columns:
@@ -184,7 +206,7 @@ class DatabaseGenerator:
         """
         try:
             self.logger.info("Importing PDF chunks...")
-            df_chunks = pd.read_csv(chunks_file_path)
+            df_chunks = pd.read_parquet(chunks_file_path)
             return df_chunks
         except Exception:
             self.logger.error(
