@@ -10,7 +10,7 @@ import pandas as pd
 from google.cloud import storage
 
 
-class IndexHandler:
+class IndexLoader:
     def __init__(
         self,
         bucket_name: Optional[str] = None,
@@ -134,7 +134,26 @@ class IndexHandler:
         )
         return indices[0]
 
-    async def build_index(self, df: pd.DataFrame) -> faiss.IndexFlatIP:
+
+class IndexGenerator:
+    def __init__(
+        self,
+        bucket_name: Optional[str] = None,
+        save_index_to_cloud: bool = False,
+    ) -> None:
+        self.save_index_to_cloud = save_index_to_cloud
+
+        if save_index_to_cloud:
+            self.bucket_name = bucket_name
+            self.client = storage.Client()
+            self.bucket = self.client.bucket(bucket_name)
+
+        self.index = None
+
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+
+    def build_index(self, df: pd.DataFrame):
         """Build a FAISS index from document embeddings.
 
         Takes a DataFrame containing text embeddings and builds a FAISS index for similarity search.
@@ -167,14 +186,31 @@ class IndexHandler:
             raise ValueError("Embeddings must be a 2D array.")
 
         d = embeddings.shape[1]
-        self.logger.info(f"Building FAISS index with dimensionality {d}.")
+        self.logger.info(
+            f"Building FAISS index with dimensionality {d} and Cosine Similarity Metric"
+        )
         index = faiss.IndexFlatIP(d)
         index.add(embeddings)
         self.logger.info(
             f"FAISS index built successfully with {index.ntotal} embeddings."
         )
-        return index
+        self.index = index
+        self.logger.info("FAISS index built sucessfully.")
 
-    async def save_index_as_file(self, index) -> None:
-        faiss.write_index(index, self.file_path)
-        self.logger.info(f"FAISS index saved to {self.file_path}.")
+        return None
+
+    def write_index(self, file_path: str = "faiss_index.index") -> None:
+        if self.index is not None:
+            if self.save_index_to_cloud:
+                blob = self.bucket.blob(file_path)
+                faiss.write_index(self.index, file_path)
+                blob.upload_from_filename(file_path)
+                os.remove(file_path)
+                self.logger.info(
+                    f"FAISS index uploaded to GCS, file path: {file_path}."
+                )
+            else:
+                faiss.write_index(self.index, file_path)
+                self.logger.info(f"FAISS index saved to {file_path}.")
+        else:
+            self.logger.error("FAISS index is None.")
