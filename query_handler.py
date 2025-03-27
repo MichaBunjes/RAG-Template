@@ -5,12 +5,12 @@ from typing import List, Tuple
 
 import numpy as np
 from database_handler import DatabaseLoader
-from index_handler import IndexHandler
+from index_handler import IndexLoader
 from model_communicator import ModelCommunicator
 
 
 class QueryHandler:
-    def __init__(self, index, df, database_loader, index_handler) -> None:
+    def __init__(self, df, database_loader, index_handler) -> None:
         """QueryHandler class for managing conversational queries with RAG.
 
         This class coordinates between the database, index, and model components to handle
@@ -28,10 +28,8 @@ class QueryHandler:
             df: Loaded document database as DataFrame
             logger: Logger instance for this class
         """
-        if index_handler.index is None or df is None:
-            raise RuntimeError(
-                "Use 'await QueryHandler.create()' instead of 'QueryHandler()'."
-            )
+        if df is None:
+            raise RuntimeError("Error: df_database is None).")
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -58,11 +56,11 @@ class QueryHandler:
             since it handles the asynchronous loading of required resources.
         """
         database_loader = DatabaseLoader(is_database_in_cloud=False)
-        index_handler = IndexHandler(is_index_in_cloud=False)
+        index_handler = IndexLoader(is_index_in_cloud=False)
         index, df = await asyncio.gather(
             index_handler.set_index(), database_loader.get_database()
         )
-        return cls(index, df, database_loader, index_handler)
+        return cls(df, database_loader, index_handler)
 
     def convert_messages_to_conversation_history(self, messages: List[dict]):
         """Convert message history into conversation format.
@@ -153,7 +151,7 @@ class QueryHandler:
 
             # Generate Embedding
             query_embedding = np.array(
-                await self.ModelCommunicator.generate_embeddings_from_list(
+                self.ModelCommunicator.generate_embeddings_from_list(
                     [combined_user_questions]
                 )
             )
