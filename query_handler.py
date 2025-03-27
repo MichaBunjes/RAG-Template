@@ -41,7 +41,9 @@ class QueryHandler:
         self.df = df
 
     @classmethod
-    async def create(cls):
+    async def create(
+        cls, is_database_in_cloud: bool = False, is_index_in_cloud: bool = False
+    ):
         """Factory method to create a new QueryHandler instance.
 
         This class method asynchronously initializes a QueryHandler by loading the required
@@ -55,8 +57,8 @@ class QueryHandler:
             This method should be used instead of directly instantiating QueryHandler
             since it handles the asynchronous loading of required resources.
         """
-        database_loader = DatabaseLoader(is_database_in_cloud=False)
-        index_handler = IndexLoader(is_index_in_cloud=False)
+        database_loader = DatabaseLoader(is_database_in_cloud)
+        index_handler = IndexLoader(is_index_in_cloud)
         _, df = await asyncio.gather(
             index_handler.set_index(), database_loader.get_database()
         )
