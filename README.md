@@ -41,9 +41,11 @@
     }
     ```
 
-6. The first time you run the system, it will:
+6. To build your database either locally or in cloud, adjust and run pdf_to_index_pipeline.py
    - Extract text from your PDFs
    - Generate embeddings (this may take some time (hours))
    - Create a searchable database
 
-7. For subsequent runs, the system will use the existing database. If you modify the PDF files, you need to run the database generation again.
+7. Running main.py will start the backend server and the system will use the existing database.
+   - Whether database is local or in cloud is specified in the class "RagSystem" in the main.py
+   - If you modify the PDF files, you need to run the database generation again.
