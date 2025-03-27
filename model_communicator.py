@@ -56,9 +56,7 @@ class ModelCommunicator:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-    async def generate_embeddings_from_list(
-        self, chunk_list: List[str]
-    ) -> List[List[float]]:
+    def generate_embeddings_from_list(self, chunk_list: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of text chunks.
 
         Takes a list of text chunks and generates embeddings using the Azure OpenAI embedding model.
