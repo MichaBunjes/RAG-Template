@@ -12,7 +12,9 @@ class RagSystem:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-        self.QueryHandler = asyncio.run(QueryHandler.create())
+        self.QueryHandler = asyncio.run(
+            QueryHandler.create(is_database_in_cloud=False, is_index_in_cloud=False)
+        )
 
 
 class UserInputSchema(Schema):
