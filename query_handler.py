@@ -57,7 +57,7 @@ class QueryHandler:
         """
         database_loader = DatabaseLoader(is_database_in_cloud=False)
         index_handler = IndexLoader(is_index_in_cloud=False)
-        index, df = await asyncio.gather(
+        _, df = await asyncio.gather(
             index_handler.set_index(), database_loader.get_database()
         )
         return cls(df, database_loader, index_handler)
