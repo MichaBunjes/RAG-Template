@@ -4,7 +4,8 @@ import os
 
 from flask import Flask, jsonify, request
 from marshmallow import Schema, ValidationError, fields
-from query_handler import QueryHandler
+
+from app.query_handler import QueryHandler
 
 
 class RagSystem:

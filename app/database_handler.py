@@ -6,7 +6,8 @@ from typing import Optional
 import fitz
 import pandas as pd
 from google.cloud import storage
-from model_communicator import ModelCommunicator
+
+from app.model_communicator import ModelCommunicator
 
 
 class DatabaseLoader:

@@ -4,9 +4,10 @@ import re
 from typing import List, Tuple
 
 import numpy as np
-from database_handler import DatabaseLoader
-from index_handler import IndexLoader
-from model_communicator import ModelCommunicator
+
+from app.database_handler import DatabaseLoader
+from app.index_handler import IndexLoader
+from app.model_communicator import ModelCommunicator
 
 
 class QueryHandler:

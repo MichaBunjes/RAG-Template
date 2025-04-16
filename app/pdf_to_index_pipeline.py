@@ -1,7 +1,7 @@
 import logging
 
-from database_handler import DatabaseGenerator
-from index_handler import IndexGenerator
+from app.database_handler import DatabaseGenerator
+from app.index_handler import IndexGenerator
 
 
 class pdf_to_index_pipeline:
