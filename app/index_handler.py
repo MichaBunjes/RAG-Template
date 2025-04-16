@@ -14,7 +14,7 @@ class IndexLoader:
     def __init__(
         self,
         bucket_name: Optional[str] = None,
-        file_path: str = "faiss_index.index",
+        file_path: str = "data/faiss_index.index",
         is_index_in_cloud: bool = False,
     ) -> None:
         """IndexHandler class for managing FAISS index operations.
@@ -27,7 +27,7 @@ class IndexLoader:
 
         Args:
             bucket_name (Optional[str]): Name of GCS bucket containing index file
-            file_path (str, optional): Path to index file. Defaults to "faiss_index.csv".
+            file_path (str, optional): Path to index file. Defaults to "data/faiss_index.csv".
             is_in_cloud (bool, optional): Whether index is stored in GCS. Defaults to False.
 
         Attributes:
@@ -199,7 +199,7 @@ class IndexGenerator:
 
         return None
 
-    def write_index(self, file_path: str = "faiss_index.index") -> None:
+    def write_index(self, file_path: str = "data/faiss_index.index") -> None:
         if self.index is not None:
             if self.save_index_to_cloud:
                 blob = self.bucket.blob(file_path)

@@ -13,7 +13,7 @@ class pdf_to_index_pipeline:
     def run_pipeline(self):
         # PDF Chunks
         database_generator = DatabaseGenerator(
-            pdf_folder_path="pdf_data",
+            pdf_folder_path="data/pdf_data",
             chunk_size=500,
             overlap_size=100,
             save_pdf_chunks_to_cloud=False,
@@ -22,13 +22,13 @@ class pdf_to_index_pipeline:
             load_chunks_from_file=False
         )
         database_generator.write_pdf_chunks_database_to_file(
-            df_chunks, file_path="df_database.parquet"
+            df_chunks, file_path="data/df_database.parquet"
         )
 
         # Index
         index_generator = IndexGenerator(save_index_to_cloud=False)
         index_generator.build_index(df_chunks_and_embeddings)
-        index_generator.write_index(file_path="faiss_index.index")
+        index_generator.write_index(file_path="data/faiss_index.index")
 
 
 pipeline = pdf_to_index_pipeline()
